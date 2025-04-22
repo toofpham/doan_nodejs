@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NewsFeed</title>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css">
+  <link rel="stylesheet" type="text/css" href="css/animate.css">
+  <link rel="stylesheet" type="text/css" href="css/font.css">
+  <link rel="stylesheet" type="text/css" href="css/li-scroller.css">
+  <link rel="stylesheet" type="text/css" href="css/slick.css">
+  <link rel="stylesheet" type="text/css" href="css/jquery.fancybox.css">
+  <link rel="stylesheet" type="text/css" href="css/theme.css">
+  <link rel="stylesheet" type="text/css" href="css/style.css">
+  <!--[if lt IE 9]>
+  <script src="assets/js/html5shiv.min.js"></script>
+  <script src="assets/js/respond.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div id="preloader">
+  <div id="status">&nbsp;</div>
+</div>
+<a class="scrollToTop" href="#"><i class="fa fa-angle-up"></i></a>
+<div class="container">
+  <header id="header">
+    <div class="row">
+      <div class="col-lg-12 col-md-12 col-sm-12">
+        <div class="header_top">
+          <div class="header_top_left">
+            <ul class="top_nav">
+              <li><a href="/">Home</a></li>
+              <li><a href="#">About</a></li>
+              <li><a href="/contact">Contact</a></li>
+            </ul>
+          </div>
+          <div class="header_top_right">
+            <p><%= new Date().toDateString() %></p>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-12 col-md-12 col-sm-12">
+        <div class="header_bottom">
+          <div class="logo_area"><a href="/" class="logo"><img src="images/logo.jpg" alt=""></a></div>
+          <div class="add_banner"><a href="#"><img src="images/addbanner_728x90_V1.jpg" alt=""></a></div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <section id="navArea">
+    <nav class="navbar navbar-inverse" role="navigation">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar"> 
+          <span class="sr-only">Toggle navigation</span> 
+          <span class="icon-bar"></span> 
+          <span class="icon-bar"></span> 
+          <span class="icon-bar"></span> 
+        </button>
+      </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav main_nav">
+          <li class="active"><a href="/"><span class="fa fa-home desktop-home"></span><span class="mobile-show">Home</span></a></li>
+          <% if (data.lsttitle) { %>
+            <% data.lsttitle.forEach((category, index) => { %>
+              <li><a href="#"><%= category.Title %></a></li>
+            <% }); %>
+          <% } else { %>
+            <li><a href="#">No Categories</a></li>
+          <% } %>
+          <li><a href="/contact">Contact Us</a></li>
+        </ul>
+      </div>
+    </nav>
+  </section>
+  <section id="sliderSection">
+    <div class="row">
+      <div class="col-lg-8 col-md-8 col-sm-8">
+        <div class="slick_slider">
+          <% if (data.lst && data.lst.length > 0) { %>
+            <% data.lst.forEach((article, index) => { %>
+              <div class="single_iteam"> 
+                <a href="/detail/<%= article.id %>"> 
+                  <img src="images/cn<%= index + 1 %>.jpg" alt="">
+                </a>
+                <div class="slider_article">
+                  <h2><a class="slider_tittle" href="/detail/<%= article.id %>"><%= article.Title %></a></h2>
+                  <p><%= article.Content %></p>
+                </div>
+              </div>
+            <% }); %>
+          <% } else { %>
+            <p>No articles available.</p>
+          <% } %>
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-4 col-sm-4">
+        <div class="latest_post">
+          <% if (data.lsttitle && data.lsttitle[5]) { %>
+            <h2><span><%= data.lsttitle[5].Title %></span></h2>
+          <% } else { %>
+            <h2><span>No Title Available</span></h2>
+          <% } %>
+          <div class="latest_post_container">
+            <ul class="latest_postnav">
+              <% if (data.lst && data.lst.length > 0) { %>
+                <% data.lst.slice(0, 5).forEach(article => { %>
+                  <li>
+                    <div class="media"> 
+                      <a href="/detail/<%= article.id %>" class="media-left"> 
+                        <img alt="" src="images/post_img1.jpg"> 
+                      </a>
+                      <div class="media-body"> 
+                        <a href="/detail/<%= article.id %>" class="catg_title"><%= article.Title %></a> 
+                      </div>
+                    </div>
+                  </li>
+                <% }); %>
+              <% } else { %>
+                <li>No recent posts available.</li>
+              <% } %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <footer id="footer">
+    <div class="footer_top">
+      <div class="row">
+        <div class="col-lg-4 col-md-4 col-sm-4">
+          <div class="footer_widget">
+            <h2>Contact</h2>
+            <address>
+              Perfect News, 1238 S. 123 St. Suite 25 Town City 3333, USA<br>
+              Phone: 123-326-789<br>
+              Fax: 123-546-567
+            </address>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer_bottom">
+      <p class="copyright">Copyright &copy; <%= new Date().getFullYear() %> <a href="/">NewsFeed</a></p>
+      <p class="developer">Developed By Wpfreeware</p>
+    </div>
+  </footer>
+</div>
+<script src="js/jquery.min.js"></script> 
+<script src="js/wow.min.js"></script> 
+<script src="js/bootstrap.min.js"></script> 
+<script src="js/slick.min.js"></script> 
+<script src="js/jquery.li-scroller.1.0.js"></script> 
+<script src="js/jquery.newsTicker.min.js"></script> 
+<script src="js/jquery.fancybox.pack.js"></script> 
+<script src="js/custom.js"></script>
+</body>
+</html>
