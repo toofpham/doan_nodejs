@@ -25,6 +25,19 @@ CREATE TABLE IF NOT EXISTS contacts (
     Message TEXT NOT NULL
 );
 
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL
+);
+
+INSERT INTO users (username, email, password) VALUES
+('nhatlam', 'nhatlam@example.com', 'password123'),
+('duykhang', 'duykhang@example.com', 'password123'),
+('khoinguyen', 'khoinguyen@example.com', 'password123'),
+('hieunghia', 'hieunghia@example.com', 'password123');
+
 -- Insert sample data into DanhMuc
 INSERT INTO danhmuc (Title) VALUES 
 ('Technology'), 

@@ -34,6 +34,13 @@
               <li><a href="../index.html">Home</a></li>
               <li><a href="#">About</a></li>
               <li><a href="contact.html">Contact</a></li>
+              <% if (!session.user) { %>
+                <li><a href="/login">Đăng nhập</a></li>
+              <% } else { %>
+                <li><a href="/logout">Đăng xuất</a></li>
+                <li><a href="/admin/users">Quản lý người dùng</a></li>
+                <li><a href="#">Xin chào, <%= session.user.username %></a></li>
+              <% } %>
             </ul>
           </div>
           <div class="header_top_right">

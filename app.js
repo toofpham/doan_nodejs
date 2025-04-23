@@ -1,25 +1,28 @@
-const express=require('express');
-const mysql=require('mysql');
-const bodyParser=require('body-parser');
-const session=require('express-session');
-const app=express();
-const port=3000;
+const express = require('express');
+const mysql = require('mysql');
+const bodyParser = require('body-parser');
+const session = require('express-session');
+const app = express();
+const port = 3000;
 
-app.set('view engine','ejs');
-app.use(express.static('public'));
+// Cấu hình view engine
+app.set('view engine', 'ejs');
+app.use(express.static('public')); // Phục vụ các tệp tĩnh từ thư mục "public"
 
-app.use(bodyParser.urlencoded({extended:true}));
+// Middleware
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
-    resave:false,
-    saveUninitialized:false,
-    secret:'keyboard cat'
-}))
+    resave: false,
+    saveUninitialized: false,
+    secret: 'keyboard cat'
+}));
 
-const db=mysql.createConnection({
-    host:'localhost',
-    user:'root',
-    password:'',
-    database:'doan_nodejs'
+// Kết nối cơ sở dữ liệu
+const db = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'doan_nodejs'
 });
 
 db.connect(err => {
@@ -27,49 +30,279 @@ db.connect(err => {
     console.log('Kết nối MySQL thành công');
 });
 
-app.get(['/','/home','/index'],(req,res)=>{
-    var sql="SELECT * FROM baiviet ORDER BY id ASC";
-    db.query(sql,function(err,result){
-        if(err) throw err;
-        console.log("Danh sách:", result);
-        
-        var sql2="SELECT Title FROM danhmuc "
-        db.query(sql2,function(err2,result2){
-            if(err2) throw err2
-            res.render('index',{data:{lst:result,lsttitle:result2}})
-        })
-        
-    })
-})
+// Route trang chủ
+app.get(['/', '/home', '/index'], (req, res) => {
+    const sql = "SELECT * FROM baiviet ORDER BY id ASC";
+    db.query(sql, (err, result) => {
+        if (err) throw err;
 
-app.get('/detail/:id',(req,res)=>{
-    const baivietId=req.params.id;
+        const sql2 = "SELECT Title FROM danhmuc";
+        db.query(sql2, (err2, result2) => {
+            if (err2) throw err2;
+            res.render('index', { data: { lst: result, lsttitle: result2 }, session: req.session });
+        });
+    });
+});
 
-    const sqlBaiViet='SELECT baiviet.*, danhmuc.Title AS category_name FROM baiviet JOIN danhmuc ON baiviet.DanhMucID = danhmuc.id WHERE baiviet.id = ?'
-    db.query(sqlBaiViet,[baivietId],(err,baiviet)=>{
-        if(err||!baiviet[0]){
-            res.render('404');
+// Route chi tiết bài viết
+app.get('/detail/:id', (req, res) => {
+    const baivietId = req.params.id;
+
+    const sqlBaiViet = 'SELECT baiviet.*, danhmuc.Title AS category_name FROM baiviet JOIN danhmuc ON baiviet.DanhMucID = danhmuc.id WHERE baiviet.id = ?';
+    db.query(sqlBaiViet, [baivietId], (err, baiviet) => {
+        if (err || !baiviet[0]) {
+            res.render('404', { session: req.session });
             return;
         }
 
-        res.render('single_page',{baiviet:baiviet[0]})
-    })
-})
+        res.render('single_page', { baiviet: baiviet[0], session: req.session });
+    });
+});
 
-app.get(['/contact'],(req,res)=>{
-    res.render('contact')
-})
-app.post('/contact',(req,res)=>{
-    var sql="INSERT INTO contacts (TenLH,Email,Message) VALUES ('"+req.body.uname+"', '"+req.body.mail+"', '"+req.body.mess+"')";
-    db.query(sql,function(err,result){
-        if(err) throw err
-        console.log("1 record inserted")
-    })
-    res.render('contact',{data:{TenLH:req.body.uname,Email:req.body.mail,Message:req.body.mess}})
-})
-app.get(['/404'],(req,res)=>{
-    res.render('404')
-})
-app.listen(3000,(req,res)=>{
-    console.log("Bắt đầu chạy app :)))")
-})
+// Route liên hệ
+app.get('/contact', (req, res) => {
+    res.render('contact', { session: req.session });
+});
+
+app.post('/contact', (req, res) => {
+    const sql = "INSERT INTO contacts (TenLH, Email, Message) VALUES (?, ?, ?)";
+    db.query(sql, [req.body.uname, req.body.mail, req.body.mess], (err, result) => {
+        if (err) throw err;
+        console.log("1 record inserted");
+    });
+    res.render('contact', { data: { TenLH: req.body.uname, Email: req.body.mail, Message: req.body.mess }, session: req.session });
+});
+
+// Route 404
+app.get('/404', (req, res) => {
+    res.render('404', { session: req.session });
+});
+
+// Route hiển thị trang đăng nhập
+app.get('/login', (req, res) => {
+    res.render('login', { error: null, session: req.session });
+});
+
+// Route xử lý đăng nhập
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+
+    const sql = "SELECT * FROM users WHERE username = ?";
+    db.query(sql, [username], (err, results) => {
+        if (err) throw err;
+
+        if (results.length > 0) {
+            const user = results[0];
+            if (password === user.password) { // Thay bằng bcrypt.compare nếu dùng mã hóa
+                req.session.user = user; // Lưu thông tin người dùng vào session
+                return res.redirect('/'); // Đăng nhập thành công, chuyển hướng về trang chủ
+            } else {
+                return res.render('login', { error: 'Sai mật khẩu!', session: req.session });
+            }
+        } else {
+            return res.render('login', { error: 'Người dùng không tồn tại!', session: req.session });
+        }
+    });
+});
+
+// Route xử lý đăng xuất
+app.get('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) throw err;
+        res.redirect('/login');
+    });
+});
+
+// Route quản lý người dùng (chỉ truy cập được khi đã đăng nhập)
+app.get('/admin/users', (req, res) => {
+    if (!req.session.user) {
+        // Nếu chưa đăng nhập, chuyển hướng đến trang đăng nhập
+        return res.redirect('/login');
+    }
+
+    const sql = "SELECT id, username, email FROM users";
+    db.query(sql, (err, results) => {
+        if (err) throw err;
+
+        res.render('admin_users', { users: results, session: req.session });
+    });
+});
+
+// Route thêm người dùng
+app.post('/admin/users/add', (req, res) => {
+    const { username, email, password } = req.body;
+    const sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
+    db.query(sql, [username, email, password], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: 'Người dùng mới đã được thêm!' };
+        res.redirect('/admin/users');
+    });
+});
+
+// Route xóa người dùng
+app.post('/admin/users/delete/:id', (req, res) => {
+    const userId = req.params.id;
+    const sql = "DELETE FROM users WHERE id = ?";
+    db.query(sql, [userId], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: `Người dùng với ID ${userId} đã bị xóa!` };
+        res.redirect('/admin/users');
+    });
+});
+
+// Route hiển thị form sửa người dùng
+app.get('/admin/users/edit/:id', (req, res) => {
+    const userId = req.params.id;
+    const sql = "SELECT * FROM users WHERE id = ?";
+    db.query(sql, [userId], (err, results) => {
+        if (err) throw err;
+        if (results.length === 0) {
+            return res.redirect('/admin/users');
+        }
+        res.render('edit_user', { user: results[0], session: req.session });
+    });
+});
+
+// Route xử lý sửa người dùng
+app.post('/admin/users/edit/:id', (req, res) => {
+    const userId = req.params.id;
+    const { username, email } = req.body;
+    const sql = "UPDATE users SET username = ?, email = ? WHERE id = ?";
+    db.query(sql, [username, email, userId], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: `Người dùng với ID ${userId} đã được cập nhật!` };
+        res.redirect('/admin/users');
+    });
+});
+
+// Route hiển thị form đổi mật khẩu
+app.get('/admin/users/change-password/:id', (req, res) => {
+    const userId = req.params.id;
+    const sql = "SELECT * FROM users WHERE id = ?";
+    db.query(sql, [userId], (err, results) => {
+        if (err) throw err;
+        if (results.length === 0) {
+            req.session.message = { type: 'danger', content: 'Người dùng không tồn tại!' };
+            return res.redirect('/admin/users');
+        }
+        res.render('change_password', { user: results[0], session: req.session });
+    });
+});
+
+// Route xử lý đổi mật khẩu
+app.post('/admin/users/change-password/:id', (req, res) => {
+    const userId = req.params.id;
+    const { newPassword } = req.body;
+    const sql = "UPDATE users SET password = ? WHERE id = ?";
+    db.query(sql, [newPassword, userId], (err, result) => {
+        if (err) {
+            req.session.message = { type: 'danger', content: 'Đã xảy ra lỗi khi đổi mật khẩu!' };
+            return res.redirect('/admin/users');
+        }
+        req.session.message = { type: 'success', content: `Mật khẩu của người dùng với ID ${userId} đã được đổi thành công!` };
+        res.redirect('/admin/users');
+    });
+});
+
+// Middleware kiểm tra đăng nhập
+function isAuthenticated(req, res, next) {
+    if (req.session.user) {
+        return next();
+    }
+    req.session.message = { type: 'danger', content: 'Bạn cần đăng nhập để truy cập!' };
+    res.redirect('/login');
+}
+
+// Route quản lý danh mục
+app.get('/admin/categories', isAuthenticated, (req, res) => {
+    const sql = "SELECT * FROM danhmuc";
+    db.query(sql, (err, results) => {
+        if (err) throw err;
+        res.render('admin_categories', { categories: results, session: req.session });
+    });
+});
+
+// Route thêm danh mục
+app.post('/admin/categories/add', isAuthenticated, (req, res) => {
+    const { title } = req.body;
+    const sql = "INSERT INTO danhmuc (Title) VALUES (?)";
+    db.query(sql, [title], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: 'Danh mục mới đã được thêm!' };
+        res.redirect('/admin/categories');
+    });
+});
+
+// Route xóa danh mục
+app.post('/admin/categories/delete/:id', isAuthenticated, (req, res) => {
+    const categoryId = req.params.id;
+    const sql = "DELETE FROM danhmuc WHERE id = ?";
+    db.query(sql, [categoryId], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: 'Danh mục đã được xóa!' };
+        res.redirect('/admin/categories');
+    });
+});
+
+// Route sửa danh mục
+app.post('/admin/categories/edit/:id', isAuthenticated, (req, res) => {
+    const categoryId = req.params.id;
+    const { title } = req.body;
+    const sql = "UPDATE danhmuc SET Title = ? WHERE id = ?";
+    db.query(sql, [title, categoryId], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: 'Danh mục đã được cập nhật!' };
+        res.redirect('/admin/categories');
+    });
+});
+
+// Route quản lý bài viết
+app.get('/admin/posts', isAuthenticated, (req, res) => {
+    const sql = "SELECT baiviet.*, danhmuc.Title AS category_name FROM baiviet JOIN danhmuc ON baiviet.DanhMucID = danhmuc.id";
+    db.query(sql, (err, results) => {
+        if (err) throw err;
+        const sqlCategories = "SELECT * FROM danhmuc";
+        db.query(sqlCategories, (err2, categories) => {
+            if (err2) throw err2;
+            res.render('admin_posts', { posts: results, categories: categories, session: req.session });
+        });
+    });
+});
+
+// Route thêm bài viết
+app.post('/admin/posts/add', isAuthenticated, (req, res) => {
+    const { title, content, categoryId } = req.body;
+    const sql = "INSERT INTO baiviet (Title, Content, DanhMucID) VALUES (?, ?, ?)";
+    db.query(sql, [title, content, categoryId], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: 'Bài viết mới đã được thêm!' };
+        res.redirect('/admin/posts');
+    });
+});
+
+// Route xóa bài viết
+app.post('/admin/posts/delete/:id', isAuthenticated, (req, res) => {
+    const postId = req.params.id;
+    const sql = "DELETE FROM baiviet WHERE id = ?";
+    db.query(sql, [postId], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: 'Bài viết đã được xóa!' };
+        res.redirect('/admin/posts');
+    });
+});
+
+// Route sửa bài viết
+app.post('/admin/posts/edit/:id', isAuthenticated, (req, res) => {
+    const postId = req.params.id;
+    const { title, content, categoryId } = req.body;
+    const sql = "UPDATE baiviet SET Title = ?, Content = ?, DanhMucID = ? WHERE id = ?";
+    db.query(sql, [title, content, categoryId, postId], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: 'Bài viết đã được cập nhật!' };
+        res.redirect('/admin/posts');
+    });
+});
+// Khởi động server
+app.listen(port, () => {
+    console.log(`Bắt đầu chạy app tại http://localhost:${port}`);
+});
