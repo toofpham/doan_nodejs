@@ -33,10 +33,10 @@ CREATE TABLE users (
 );
 
 INSERT INTO users (username, email, password) VALUES
-('nhatlam', 'nhatlam@example.com', 'password123'),
-('duykhang', 'duykhang@example.com', 'password123'),
-('khoinguyen', 'khoinguyen@example.com', 'password123'),
-('hieunghia', 'hieunghia@example.com', 'password123');
+('nhatlam', 'nhatlam@gmail.com', '123'),
+('duykhang', 'duykhang@gmail.com', '123'),
+('khoinguyen', 'khoinguyen@gmail.com', '123'),
+('hieunghia', 'hieunghia@gmail.com', '123');
 
 -- Insert sample data into DanhMuc
 INSERT INTO danhmuc (Title) VALUES 

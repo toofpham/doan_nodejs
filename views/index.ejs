@@ -34,15 +34,16 @@
                 <li><a href="/login">Đăng nhập</a></li>
               <% } else { %>
                 <li><a href="/logout">Đăng xuất</a></li>
-                <li><a href="/admin/users">Quản lý người dùng</a></li>
-                <li><a href="/admin/categories">Quản lý danh mục</a></li>
-                <li><a href="/admin/posts">Quản lý bài viết</a></li>
-                <li><a href="#">Xin chào, <%= session.user.username %></a></li>
+                <% if (allowedUsers.includes(session.user.username)) { %>
+                  <li><a href="/admin/users">Quản lý người dùng</a></li>
+                  <li><a href="/admin/categories">Quản lý danh mục</a></li>
+                  <li><a href="/admin/posts">Quản lý bài viết</a></li>
+                <% } %>
               <% } %>
             </ul>
           </div>
           <div class="header_top_right">
-            <p><%= new Date().toDateString() %></p>
+            <h1 class="welcome-message">Xin chào, <%= session.user ? session.user.username : 'Khách' %>!</h1>
           </div>
         </div>
       </div>

@@ -8,7 +8,13 @@ Version: 1.0
 License: GPL
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 */
-
+.welcome-message {
+    font-size: 18px; /* Kích thước chữ */
+    font-weight: bold; /* Chữ đậm */
+    color: #ffffff; /* Màu chữ trắng */
+    margin: 0; /* Loại bỏ khoảng cách mặc định */
+    padding: 10px; /* Khoảng cách bên trong */
+}
 body{background:#f5f5f5}
 ul{padding:0; margin:0; list-style:none}
 a{text-decoration:none; color:#2f2f2f}
