@@ -38,8 +38,6 @@ function isAuthenticated(req, res, next) {
     if (req.session.user) {
         return next();
     }
-    req.session.message = { type: 'danger', content: 'Bạn cần đăng nhập để truy cập!' };
-    res.redirect('/login');
 }
 
 // Middleware kiểm tra quyền truy cập
@@ -47,8 +45,6 @@ function isAuthorized(req, res, next) {
     if (req.session.user && allowedUsers.includes(req.session.user.username)) {
         return next();
     }
-    req.session.message = { type: 'danger', content: 'Bạn không có quyền truy cập!' };
-    res.redirect('/');
 }
 
 // Route trang chủ
@@ -263,6 +259,50 @@ app.get('/admin/categories', isAuthenticated, isAuthorized, (req, res) => {
     });
 });
 
+// Route thêm danh mục
+app.post('/admin/categories/add', isAuthenticated, isAuthorized, (req, res) => {
+    const { title } = req.body;
+    const sql = "INSERT INTO danhmuc (Title) VALUES (?)";
+    db.query(sql, [title], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: 'Danh mục mới đã được thêm!' };
+        res.redirect('/admin/categories');
+    });
+});
+
+// Route xóa danh mục
+app.post('/admin/categories/delete/:id', isAuthenticated, isAuthorized, (req, res) => {
+    const categoryId = parseInt(req.params.id, 10);
+    if (isNaN(categoryId)) {
+        req.session.message = { type: 'danger', content: 'ID không hợp lệ!' };
+        return res.redirect('/admin/categories');
+    }
+
+    const sql = "DELETE FROM danhmuc WHERE id = ?";
+    db.query(sql, [categoryId], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: `Danh mục với ID ${categoryId} đã bị xóa!` };
+        res.redirect('/admin/categories');
+    });
+});
+
+// Route sửa danh mục
+app.post('/admin/categories/edit/:id', isAuthenticated, isAuthorized, (req, res) => {
+    const categoryId = parseInt(req.params.id, 10);
+    const { title } = req.body;
+    if (isNaN(categoryId)) {
+        req.session.message = { type: 'danger', content: 'ID không hợp lệ!' };
+        return res.redirect('/admin/categories');
+    }
+
+    const sql = "UPDATE danhmuc SET Title = ? WHERE id = ?";
+    db.query(sql, [title, categoryId], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: `Danh mục với ID ${categoryId} đã được cập nhật!` };
+        res.redirect('/admin/categories');
+    });
+});
+
 // Route quản lý bài viết
 app.get('/admin/posts', isAuthenticated, isAuthorized, (req, res) => {
     const sql = "SELECT baiviet.*, danhmuc.Title AS category_name FROM baiviet JOIN danhmuc ON baiviet.DanhMucID = danhmuc.id";
@@ -273,6 +313,50 @@ app.get('/admin/posts', isAuthenticated, isAuthorized, (req, res) => {
             if (err2) throw err2;
             res.render('admin_posts', { posts: results, categories: categories, session: req.session });
         });
+    });
+});
+
+// Route thêm bài viết
+app.post('/admin/posts/add', isAuthenticated, isAuthorized, (req, res) => {
+    const { title, content, categoryId } = req.body;
+    const sql = "INSERT INTO baiviet (Title, Content, DanhMucID) VALUES (?, ?, ?)";
+    db.query(sql, [title, content, categoryId], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: 'Bài viết mới đã được thêm!' };
+        res.redirect('/admin/posts');
+    });
+});
+
+// Route xóa bài viết
+app.post('/admin/posts/delete/:id', isAuthenticated, isAuthorized, (req, res) => {
+    const postId = parseInt(req.params.id, 10);
+    if (isNaN(postId)) {
+        req.session.message = { type: 'danger', content: 'ID không hợp lệ!' };
+        return res.redirect('/admin/posts');
+    }
+
+    const sql = "DELETE FROM baiviet WHERE id = ?";
+    db.query(sql, [postId], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: `Bài viết với ID ${postId} đã bị xóa!` };
+        res.redirect('/admin/posts');
+    });
+});
+
+// Route sửa bài viết
+app.post('/admin/posts/edit/:id', isAuthenticated, isAuthorized, (req, res) => {
+    const postId = parseInt(req.params.id, 10);
+    const { title, content, categoryId } = req.body;
+    if (isNaN(postId)) {
+        req.session.message = { type: 'danger', content: 'ID không hợp lệ!' };
+        return res.redirect('/admin/posts');
+    }
+
+    const sql = "UPDATE baiviet SET Title = ?, Content = ?, DanhMucID = ? WHERE id = ?";
+    db.query(sql, [title, content, categoryId, postId], (err, result) => {
+        if (err) throw err;
+        req.session.message = { type: 'success', content: `Bài viết với ID ${postId} đã được cập nhật!` };
+        res.redirect('/admin/posts');
     });
 });
 
