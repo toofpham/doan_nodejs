@@ -78,29 +78,50 @@ app.get('/detail/:id', (req, res) => {
             return res.render('404', { session: req.session });
         }
 
-        res.render('single_page', { 
-            baiviet: baiviet[0], 
-            session: req.session, 
+        const sqlDanhMuc = 'SELECT Title FROM danhmuc';
+        db.query(sqlDanhMuc, (err2, lsttitle) => {
+            if (err2) throw err2;
+
+            res.render('single_page', {
+                baiviet: baiviet[0],
+                data: { lsttitle },
+                session: req.session ,
+                allowedUsers
+            });
+        });
+    });
+});
+
+// Route hiển thị trang liên hệ
+app.get('/contact', (req, res) => {
+    const sqlDanhMuc = "SELECT Title FROM danhmuc";
+    db.query(sqlDanhMuc, (err, lsttitle) => {
+        if (err) throw err;
+
+        res.render('contact', {
+            data: { lsttitle }, // Truyền danh mục vào EJS
+            session: req.session,
             allowedUsers
         });
     });
 });
 
-// Route liên hệ
-app.get('/contact', (req, res) => {
-    res.render('contact', { 
-        session: req.session,
-        allowedUsers
-    });
-});
-
+// Route xử lý form liên hệ
 app.post('/contact', (req, res) => {
+    const { uname, mail, mess } = req.body;
+
+    if (!uname || !mail || !mess) {
+        req.session.message = { type: 'danger', content: 'Vui lòng điền đầy đủ thông tin!' };
+        return res.redirect('/contact');
+    }
+
     const sql = "INSERT INTO contacts (TenLH, Email, Message) VALUES (?, ?, ?)";
-    db.query(sql, [req.body.uname, req.body.mail, req.body.mess], (err, result) => {
+    db.query(sql, [uname, mail, mess], (err, result) => {
         if (err) throw err;
-        console.log("1 record inserted");
+
+        req.session.message = { type: 'success', content: 'Cảm ơn bạn đã liên hệ với chúng tôi!' };
+        res.redirect('/contact');
     });
-    res.render('contact', { data: { TenLH: req.body.uname, Email: req.body.mail, Message: req.body.mess }, session: req.session });
 });
 
 // Route hiển thị trang đăng nhập
@@ -134,7 +155,7 @@ app.post('/login', (req, res) => {
 app.get('/logout', (req, res) => {
     req.session.destroy(err => {
         if (err) throw err;
-        res.redirect('/login');
+        res.redirect('/');
     });
 });
 
