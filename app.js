@@ -45,10 +45,10 @@ function isAuthenticated(req, res, next) {
 // Middleware kiểm tra quyền truy cập
 function isAuthorized(req, res, next) {
     if (req.session.user && allowedUsers.includes(req.session.user.username)) {
-        return next(); // Người dùng được phép truy cập
+        return next();
     }
-    req.session.message = { type: 'danger', content: 'Bạn không có quyền truy cập vào trang này!' };
-    res.redirect('/'); // Chuyển hướng về trang chủ
+    req.session.message = { type: 'danger', content: 'Bạn không có quyền truy cập!' };
+    res.redirect('/');
 }
 
 // Route trang chủ
@@ -62,7 +62,8 @@ app.get(['/', '/home', '/index'], (req, res) => {
             if (err2) throw err2;
             res.render('index', { 
                 data: { lst: result, lsttitle: result2 }, 
-                session: req.session,allowedUsers
+                session: req.session,
+                allowedUsers
             });
         });
     });
@@ -70,19 +71,21 @@ app.get(['/', '/home', '/index'], (req, res) => {
 
 // Route chi tiết bài viết
 app.get('/detail/:id', (req, res) => {
-    const baivietId = req.params.id;
+    const baivietId = parseInt(req.params.id, 10);
+    if (isNaN(baivietId)) {
+        return res.render('404', { session: req.session });
+    }
 
     const sqlBaiViet = 'SELECT baiviet.*, danhmuc.Title AS category_name FROM baiviet JOIN danhmuc ON baiviet.DanhMucID = danhmuc.id WHERE baiviet.id = ?';
     db.query(sqlBaiViet, [baivietId], (err, baiviet) => {
         if (err || !baiviet[0]) {
-            res.render('404', { session: req.session });
-            return;
+            return res.render('404', { session: req.session });
         }
 
         res.render('single_page', { 
             baiviet: baiviet[0], 
             session: req.session, 
-            allowedUsers // Truyền allowedUsers vào EJS
+            allowedUsers
         });
     });
 });
@@ -91,7 +94,7 @@ app.get('/detail/:id', (req, res) => {
 app.get('/contact', (req, res) => {
     res.render('contact', { 
         session: req.session,
-        allowedUsers // Truyền allowedUsers vào EJS
+        allowedUsers
     });
 });
 
@@ -139,7 +142,7 @@ app.get('/logout', (req, res) => {
     });
 });
 
-// Route quản lý người dùng (chỉ truy cập được khi đã đăng nhập và có quyền)
+// Route quản lý người dùng
 app.get('/admin/users', isAuthenticated, isAuthorized, (req, res) => {
     const sql = "SELECT id, username, email FROM users";
     db.query(sql, (err, results) => {
@@ -162,7 +165,12 @@ app.post('/admin/users/add', isAuthenticated, isAuthorized, (req, res) => {
 
 // Route xóa người dùng
 app.post('/admin/users/delete/:id', isAuthenticated, isAuthorized, (req, res) => {
-    const userId = req.params.id;
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId)) {
+        req.session.message = { type: 'danger', content: 'ID không hợp lệ!' };
+        return res.redirect('/admin/users');
+    }
+
     const sql = "DELETE FROM users WHERE id = ?";
     db.query(sql, [userId], (err, result) => {
         if (err) throw err;
@@ -173,11 +181,17 @@ app.post('/admin/users/delete/:id', isAuthenticated, isAuthorized, (req, res) =>
 
 // Route hiển thị form sửa người dùng
 app.get('/admin/users/edit/:id', isAuthenticated, isAuthorized, (req, res) => {
-    const userId = req.params.id;
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId)) {
+        req.session.message = { type: 'danger', content: 'ID không hợp lệ!' };
+        return res.redirect('/admin/users');
+    }
+
     const sql = "SELECT * FROM users WHERE id = ?";
-    db.query(sql, (err, results) => {
+    db.query(sql, [userId], (err, results) => { 
         if (err) throw err;
         if (results.length === 0) {
+            req.session.message = { type: 'danger', content: 'Người dùng không tồn tại!' };
             return res.redirect('/admin/users');
         }
         res.render('edit_user', { user: results[0], session: req.session });
@@ -186,8 +200,13 @@ app.get('/admin/users/edit/:id', isAuthenticated, isAuthorized, (req, res) => {
 
 // Route xử lý sửa người dùng
 app.post('/admin/users/edit/:id', isAuthenticated, isAuthorized, (req, res) => {
-    const userId = req.params.id;
+    const userId = parseInt(req.params.id, 10);
     const { username, email } = req.body;
+    if (isNaN(userId)) {
+        req.session.message = { type: 'danger', content: 'ID không hợp lệ!' };
+        return res.redirect('/admin/users');
+    }
+
     const sql = "UPDATE users SET username = ?, email = ? WHERE id = ?";
     db.query(sql, [username, email, userId], (err, result) => {
         if (err) throw err;
@@ -198,9 +217,14 @@ app.post('/admin/users/edit/:id', isAuthenticated, isAuthorized, (req, res) => {
 
 // Route hiển thị form đổi mật khẩu
 app.get('/admin/users/change-password/:id', isAuthenticated, isAuthorized, (req, res) => {
-    const userId = req.params.id;
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId)) {
+        req.session.message = { type: 'danger', content: 'ID không hợp lệ!' };
+        return res.redirect('/admin/users');
+    }
+
     const sql = "SELECT * FROM users WHERE id = ?";
-    db.query(sql, (err, results) => {
+    db.query(sql, [userId], (err, results) => {
         if (err) throw err;
         if (results.length === 0) {
             req.session.message = { type: 'danger', content: 'Người dùng không tồn tại!' };
@@ -212,8 +236,13 @@ app.get('/admin/users/change-password/:id', isAuthenticated, isAuthorized, (req,
 
 // Route xử lý đổi mật khẩu
 app.post('/admin/users/change-password/:id', isAuthenticated, isAuthorized, (req, res) => {
-    const userId = req.params.id;
+    const userId = parseInt(req.params.id, 10);
     const { newPassword } = req.body;
+    if (isNaN(userId) || !newPassword) {
+        req.session.message = { type: 'danger', content: 'Dữ liệu không hợp lệ!' };
+        return res.redirect(`/admin/users/change-password/${userId}`);
+    }
+
     const sql = "UPDATE users SET password = ? WHERE id = ?";
     db.query(sql, [newPassword, userId], (err, result) => {
         if (err) {
@@ -225,7 +254,7 @@ app.post('/admin/users/change-password/:id', isAuthenticated, isAuthorized, (req
     });
 });
 
-// Route quản lý danh mục (chỉ truy cập được khi đã đăng nhập và có quyền)
+// Route quản lý danh mục
 app.get('/admin/categories', isAuthenticated, isAuthorized, (req, res) => {
     const sql = "SELECT * FROM danhmuc";
     db.query(sql, (err, results) => {
@@ -234,7 +263,7 @@ app.get('/admin/categories', isAuthenticated, isAuthorized, (req, res) => {
     });
 });
 
-// Route quản lý bài viết (chỉ truy cập được khi đã đăng nhập và có quyền)
+// Route quản lý bài viết
 app.get('/admin/posts', isAuthenticated, isAuthorized, (req, res) => {
     const sql = "SELECT baiviet.*, danhmuc.Title AS category_name FROM baiviet JOIN danhmuc ON baiviet.DanhMucID = danhmuc.id";
     db.query(sql, (err, results) => {
