@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bài viết theo chủ đề: <%= categoryTitle %></title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<!-- Preloader -->
+<div id="preloader">
+  <div id="status">&nbsp;</div>
+</div>
+
+<!-- Scroll to Top -->
+<a class="scrollToTop" href="#"><i class="fa fa-angle-up"></i></a>
+
+<!-- Header -->
+<div class="container">
+  <header id="header" class="py-3">
+    <div class="row align-items-center">
+      <div class="col-lg-6 col-md-6 col-sm-12">
+        <a href="/" class="navbar-brand text-primary fw-bold fs-3">NewsFeed</a>
+      </div>
+      <div class="col-lg-6 col-md-6 col-sm-12 text-end">
+        <form class="d-flex" action="/search" method="GET">
+          <input class="form-control me-2" type="search" name="q" placeholder="Tìm kiếm..." aria-label="Search">
+          <button class="btn btn-outline-primary" type="submit">Tìm</button>
+        </form>
+      </div>
+    </div>
+  </header>
+</div>
+
+<!-- Main Content -->
+<div class="container mt-5">
+  <h1 class="mb-4 text-center text-primary">Bài viết theo chủ đề: <%= categoryTitle %></h1>
+  <div class="row">
+    <% if (posts && posts.length > 0) { %>
+      <% posts.forEach((post) => { %>
+        <div class="col-md-4 mb-4">
+          <div class="card h-100 shadow-sm">
+            <img src="<%= post.imagePath || '/images/default.jpg' %>" class="card-img-top" alt="<%= post.Title %>">
+            <div class="card-body">
+              <h5 class="card-title text-primary"><%= post.Title %></h5>
+              <p class="card-text text-muted"><%= post.Content.substring(0, 100) %>...</p>
+              <a href="/detail/<%= post.id %>" class="btn btn-primary">Xem chi tiết</a>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <p class="text-center text-muted">Không có bài viết nào trong chủ đề này.</p>
+    <% } %>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer id="footer" class="bg-light mt-5">
+  <div class="footer_top py-4">
+    <div class="row">
+      <div class="col-lg-4 col-md-4 col-sm-12">
+        <div class="footer_widget">
+          <h2 class="text-primary">Liên hệ</h2>
+          <address>
+            <p><i class="fa fa-map-marker-alt"></i> <%= footerData.address || 'Địa chỉ chưa được cập nhật' %></p>
+            <p><i class="fa fa-envelope"></i> <%= footerData.email || 'Email chưa được cập nhật' %></p>
+            <p>
+              <a href="<%= footerData.facebook || '#' %>" target="_blank" class="text-decoration-none">
+                <i class="fab fa-facebook"></i> Facebook
+              </a>
+            </p>
+            <p>
+              <a href="<%= footerData.youtube || '#' %>" target="_blank" class="text-decoration-none">
+                <i class="fab fa-youtube"></i> YouTube
+              </a>
+            </p>
+          </address>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer_bottom bg-primary text-white py-2">
+    <p class="text-center mb-0">
+      Copyright &copy; <%= new Date().getFullYear() %> NewsFeed. All rights reserved.
+    </p>
+  </div>
+</footer>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="/js/custom.js"></script>
+</body>
+</html>

@@ -224,9 +224,31 @@ figure.effect-layla:hover figcaption::after, figure.effect-layla:hover h2, figur
 .footer_top{background-color:#252525; color:#ddd; display:inline; float:left; padding:10px 30px 48px; width:100%}
 .footer_widget{display:inline; float:left; width:100%; min-height:310px}
 .footer_widget > h2{border-bottom:3px solid #666; font-family:Oswald,arial,Georgia,serif; font-size:16px; padding:10px 0; text-transform:uppercase}
-.tag_nav{}
-.tag_nav li{}
+/* CSS cho biểu tượng Facebook */
+.footer_widget a[href*="facebook"] {
+  color: #3b5998; /* Màu xanh Facebook */
+  font-size: 18px; /* Kích thước biểu tượng */
+  transition: color 0.3s ease, transform 0.3s ease; /* Hiệu ứng chuyển đổi */
+}
+
+.footer_widget a[href*="facebook"]:hover {
+  color: #4267B2; /* Màu xanh đậm hơn khi hover */
+  transform: scale(1.2); /* Phóng to biểu tượng khi hover */
+}
+
+/* CSS cho biểu tượng YouTube */
+.footer_widget a[href*="youtube"] {
+  color: #FF0000; /* Màu đỏ YouTube */
+  font-size: 18px; /* Kích thước biểu tượng */
+  transition: color 0.3s ease, transform 0.3s ease; /* Hiệu ứng chuyển đổi */
+}
+
+.footer_widget a[href*="youtube"]:hover {
+  color: #CC0000; /* Màu đỏ đậm hơn khi hover */
+  transform: scale(1.2); /* Phóng to biểu tượng khi hover */
+}
 .tag_nav li a{border-bottom:1px solid #ddd; color:#ccc; display:block; padding:6px 6px 6px 0; -webkit-transition:all 0.5s; -o-transition:all 0.5s; transition:all 0.5s}
+
 .tag_nav li a:hover{padding-left:10px}
 .footer_bottom{float:left; display:inline; width:100%; padding:10px 30px; background-color:#303030; color:#ccc}
 .copyright{float:left; width:50%; padding-top:5px; text-align:left}

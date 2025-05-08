@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Danh sách Liên hệ</title>
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+  <h1>Danh sách Liên hệ</h1>
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Họ và tên</th>
+        <th>Email</th>
+        <th>Số điện thoại</th>
+        <th>Tiêu đề</th>
+        <th>Nội dung</th>
+        <th>Ngày gửi</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% contacts.forEach(contact => { %>
+        <tr>
+          <td><%= contact.id %></td>
+          <td><%= contact.TenLH %></td>
+          <td><%= contact.Email %></td>
+          <td><%= contact.Phone %></td>
+          <td><%= contact.Subject %></td>
+          <td><%= contact.Message %></td>
+          <td><%= new Date(contact.created_at).toLocaleString('vi-VN') %></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>
+<script src="/js/bootstrap.min.js"></script>
+</body>
+</html>

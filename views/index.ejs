@@ -28,7 +28,6 @@
           <div class="header_top_left">
             <ul class="top_nav">
               <li><a href="/">Home</a></li>
-              <li><a href="#">About</a></li>
               <li><a href="/contact">Contact</a></li>
               <% if (!session.user) { %>
                 <li><a href="/login">Đăng nhập</a></li>
@@ -38,6 +37,8 @@
                   <li><a href="/admin/users">Quản lý người dùng</a></li>
                   <li><a href="/admin/categories">Quản lý danh mục</a></li>
                   <li><a href="/admin/posts">Quản lý bài viết</a></li>
+                  <li><a href="/admin/subscribers">Danh sách Subscribe</a></li>
+                  <li><a href="/admin/contacts"">Danh sách Liên hệ</a></li>
                 <% } %>
               <% } %>
             </ul>
@@ -70,7 +71,7 @@
           <li class="active"><a href="/"><span class="fa fa-home desktop-home"></span><span class="mobile-show">Home</span></a></li>
           <% if (data.lsttitle) { %>
             <% data.lsttitle.forEach((category, index) => { %>
-              <li><a href="#"><%= category.Title %></a></li>
+              <li><a href="/category/<%= encodeURIComponent(category.Title) %>"><%= category.Title %></a></li>
             <% }); %>
           <% } else { %>
             <li><a href="#">No Categories</a></li>
@@ -88,11 +89,10 @@
             <% data.lst.forEach((article, index) => { %>
               <div class="single_iteam"> 
                 <a href="/detail/<%= article.id %>"> 
-                  <img src="images\cn01.jpg" alt="">
+                  <img src="<%= article.imagePath || 'images/default.jpg' %>" alt="<%= article.Title %>">
                 </a>
                 <div class="slider_article">
                   <h2><a class="slider_tittle" href="/detail/<%= article.id %>"><%= article.Title %></a></h2>
-                  <p><%= article.Content %></p>
                 </div>
               </div>
             <% }); %>
@@ -111,7 +111,8 @@
                   <li>
                     <div class="media"> 
                       <a href="/detail/<%= article.id %>" class="media-left"> 
-                        <img alt="" src="images/post_img1.jpg"> 
+                        <img src="<%= article.imagePath || 'images/default.jpg' %>" alt="<%= article.Title %>">
+
                       </a>
                       <div class="media-body"> 
                         <a href="/detail/<%= article.id %>" class="catg_title"><%= article.Title %></a> 
@@ -128,6 +129,63 @@
       </div>
     </div>
   </section>
+  
+  <section id="contentSection">
+    <div class="row">
+      <!-- Phần Mới Nhất -->
+      <div class="col-lg-6 col-md-6 col-sm-12">
+        <div class="single_post_content">
+          <h2><span>Mới nhất</span></h2>
+          <ul class="spost_nav">
+            <% if (data.latest && data.latest.length > 0) { %>
+              <% data.latest.slice(0, 3).forEach((article) => { %>
+                <li>
+                  <div class="media">
+                    <a href="/detail/<%= article.id %>" class="media-left">
+                      <img src="<%= article.imagePath || 'images/default.jpg' %>" alt="<%= article.Title %>">
+                    </a>
+                    <div class="media-body">
+                      <a href="/detail/<%= article.id %>" class="catg_title"><%= article.Title %></a>
+                      <p><b>Đăng ngày: <%= new Date(article.created_at).toLocaleDateString('vi-VN') %></b></p>
+                    </div>
+                  </div>
+                </li>
+              <% }); %>
+            <% } else { %>
+              <li>Không có bài viết mới.</li>
+            <% } %>
+          </ul>
+        </div>
+      </div>
+  
+      <!-- Phần Xem Nhiều Nhất -->
+      <div class="col-lg-6 col-md-6 col-sm-12">
+        <div class="single_post_content">
+          <h2><span>Xem nhiều nhất</span></h2>
+          <ul class="spost_nav">
+            <% if (data.mostViewed && data.mostViewed.length > 0) { %>
+              <% data.mostViewed.slice(0, 3).forEach((article) => { %>
+                <li>
+                  <div class="media">
+                    <a href="/detail/<%= article.id %>" class="media-left">
+                      <img src="<%= article.imagePath || 'images/default.jpg' %>" alt="<%= article.Title %>">
+                    </a>
+                    <div class="media-body">
+                      <a href="/detail/<%= article.id %>" class="catg_title"><%= article.Title %></a>
+                      <p><b>Lượt xem: <%= article.views %></b></p>
+                    </div>
+                  </div>
+                </li>
+              <% }); %>
+            <% } else { %>
+              <li>Không có bài viết nào.</li>
+            <% } %>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <footer id="footer">
     <div class="footer_top">
       <div class="row">
@@ -135,16 +193,40 @@
           <div class="footer_widget">
             <h2>Contact</h2>
             <address>
-              Perfect News, 1238 S. 123 St. Suite 25 Town City 3333, USA<br>
-              Phone: 123-326-789<br>
-              Fax: 123-546-567
+              <p><i class="fa fa-map-marker"></i> <%= footerData.address %></p>
+              <p><i class="fa fa-envelope"></i> <%= footerData.email %></p>
+              <p>
+                <a href="<%= footerData.facebook %>" target="_blank">
+                  <i class="fa fa-facebook"></i> Facebook
+                </a>
+              </p>
+              <p>
+                <a href="<%= footerData.youtube %>" target="_blank">
+                  <i class="fa fa-youtube"></i> YouTube
+                </a>
+              </p>
             </address>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-4 col-sm-4">
+          <div class="footer_widget">
+            <h2>Subscribe</h2>
+            <form action="/subscribe" method="POST">
+              <div class="input-group">
+                <input type="email" name="email" class="form-control" placeholder="Enter your email" required>
+                <span class="input-group-btn">
+                  <button class="btn btn-primary" type="submit">Subscribe</button>
+                </span>
+              </div>
+            </form>
           </div>
         </div>
       </div>
     </div>
     <div class="footer_bottom">
-      <p class="copyright">Copyright &copy; <%= new Date().getFullYear() %> <a href="/">NewsFeed</a></p>
+      <p class="copyright">
+        Copyright &copy; <%= new Date().getFullYear() %> <a href="/">NewsFeed</a>
+      </p>
       <p class="developer">Developed By Wpfreeware</p>
     </div>
   </footer>

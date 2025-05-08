@@ -34,49 +34,110 @@
           <tr>
             <td><%= post.id %></td>
             <td><%= post.Title %></td>
-            <td><%= post.Content %></td>
+            <td><%= post.Content.substring(0, 50) %>...</td>
             <td><%= post.category_name %></td>
             <td>
-              <form action="/admin/posts/edit/<%= post.id %>" method="POST" class="d-inline">
-                <input type="text" name="title" value="<%= post.Title %>" required>
-                <input type="text" name="content" value="<%= post.Content %>" required>
-                <select name="categoryId" required>
-                  <% categories.forEach(category => { %>
-                    <option value="<%= category.id %>" <%= category.id === post.DanhMucID ? 'selected' : '' %>><%= category.Title %></option>
-                  <% }); %>
-                </select>
-                <button type="submit" class="btn btn-warning btn-sm">Sửa</button>
-              </form>
+              <!-- Nút mở modal sửa -->
+              <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal-<%= post.id %>">Sửa</button>
+      
+              <!-- Nút xóa -->
               <form action="/admin/posts/delete/<%= post.id %>" method="POST" class="d-inline">
-                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Bạn có chắc chắn muốn xóa?')">Xóa</button>
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Bạn có chắc chắn muốn xóa bài viết này?')">Xóa</button>
               </form>
             </td>
           </tr>
+      
+          <!-- Modal sửa bài viết -->
+          <div class="modal fade" id="editModal-<%= post.id %>" tabindex="-1" aria-labelledby="editModalLabel-<%= post.id %>" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content">
+                <form action="/admin/posts/edit/<%= post.id %>" method="POST" enctype="multipart/form-data">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel-<%= post.id %>">Sửa bài viết</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="mb-3">
+                      <label for="title-<%= post.id %>" class="form-label">Tiêu đề</label>
+                      <input 
+                        type="text" 
+                        id="title-<%= post.id %>" 
+                        name="title" 
+                        value="<%= post.Title %>" 
+                        class="form-control" 
+                        required>
+                    </div>
+                    <div class="mb-3">
+                      <label for="content-<%= post.id %>" class="form-label">Nội dung</label>
+                      <textarea 
+                        id="content-<%= post.id %>" 
+                        name="content" 
+                        class="form-control" 
+                        required><%= post.Content %></textarea>
+                    </div>
+                    <div class="mb-3">
+                      <label for="categoryId-<%= post.id %>" class="form-label">Danh mục</label>
+                      <select 
+                        id="categoryId-<%= post.id %>" 
+                        name="categoryId" 
+                        class="form-control" 
+                        required>
+                        <% categories.forEach(category => { %>
+                          <option 
+                            value="<%= category.id %>" 
+                            <%= category.id === post.DanhMucID ? 'selected' : '' %>>
+                            <%= category.Title %>
+                          </option>
+                        <% }); %>
+                      </select>
+                    </div>
+                    <div class="mb-3">
+                      <label for="image-<%= post.id %>" class="form-label">Hình ảnh mới (nếu cần thay đổi)</label>
+                      <input 
+                        type="file" 
+                        id="image-<%= post.id %>" 
+                        name="image" 
+                        class="form-control" 
+                        accept="image/*">
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
         <% }); %>
       </tbody>
     </table>
 
     <!-- Thêm bài viết mới -->
     <h2 class="mt-5">Thêm bài viết mới</h2>
-    <form action="/admin/posts/add" method="POST" class="mt-3">
-      <div class="mb-3">
-        <label for="title" class="form-label">Tiêu đề</label>
-        <input type="text" id="title" name="title" class="form-control" required>
-      </div>
-      <div class="mb-3">
-        <label for="content" class="form-label">Nội dung</label>
-        <textarea id="content" name="content" class="form-control" required></textarea>
-      </div>
-      <div class="mb-3">
-        <label for="categoryId" class="form-label">Danh mục</label>
-        <select id="categoryId" name="categoryId" class="form-control" required>
-          <% categories.forEach(category => { %>
-            <option value="<%= category.id %>"><%= category.Title %></option>
-          <% }); %>
-        </select>
-      </div>
-      <button type="submit" class="btn btn-primary w-100">Thêm</button>
-    </form>
+    <form action="/admin/posts/add" method="POST" enctype="multipart/form-data" class="mt-3">
+  <div class="mb-3">
+    <label for="title" class="form-label">Tiêu đề</label>
+    <input type="text" id="title" name="title" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label for="content" class="form-label">Nội dung</label>
+    <textarea id="content" name="content" class="form-control" required></textarea>
+  </div>
+  <div class="mb-3">
+    <label for="categoryId" class="form-label">Danh mục</label>
+    <select id="categoryId" name="categoryId" class="form-control" required>
+      <% categories.forEach(category => { %>
+        <option value="<%= category.id %>"><%= category.Title %></option>
+      <% }); %>
+    </select>
+  </div>
+  <div class="mb-3">
+    <label for="image" class="form-label">Hình ảnh</label>
+    <input type="file" id="image" name="image" class="form-control" accept="image/*" required>
+  </div>
+  <button type="submit" class="btn btn-primary w-100">Thêm</button>
+</form>
   </div>
   <div class="text-center mt-4">
     <a href="/" class="btn btn-primary">Quay lại trang chủ</a>

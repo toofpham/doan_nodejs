@@ -1,6 +1,8 @@
 const express = require('express');
 const mysql = require('mysql');
 const bodyParser = require('body-parser');
+const multer = require('multer');
+const path = require('path');
 const session = require('express-session');
 const app = express();
 const port = 3000;
@@ -46,62 +48,221 @@ function isAuthorized(req, res, next) {
         return next();
     }
 }
+// Route xử lý subscribe
+app.post('/subscribe', (req, res) => {
+    const { email } = req.body;
+    const sql = "INSERT INTO subscribers (email) VALUES (?)";
 
-// Route trang chủ
-app.get(['/', '/home', '/index'], (req, res) => {
-    const sql = "SELECT * FROM baiviet ORDER BY id ASC";
-    db.query(sql, (err, result) => {
+    db.query(sql, [email], (err, result) => {
         if (err) throw err;
+        req.session.message = { type: 'success', content: 'Bạn đã đăng ký nhận tin thành công!' };
+        res.redirect('/');
+    });
+});
 
-        const sql2 = "SELECT Title FROM danhmuc";
-        db.query(sql2, (err2, result2) => {
-            if (err2) throw err2;
-            res.render('index', { 
-                data: { lst: result, lsttitle: result2 }, 
-                session: req.session,
-                allowedUsers
+app.get(['/', '/home', '/index'], (req, res) => {
+    const sqlArticles = "SELECT * FROM baiviet ORDER BY id DESC"; // Tất cả bài viết
+    const sqlLatest = "SELECT id, Title, Content, imagePath, created_at FROM baiviet ORDER BY created_at DESC LIMIT 5"; // Bài viết mới nhất
+    const sqlMostViewed = "SELECT id, Title, Content, imagePath, views FROM baiviet ORDER BY views DESC LIMIT 5"; // Bài viết xem nhiều nhất
+    const sqlCategories = "SELECT Title FROM danhmuc"; // Danh mục
+    const sqlFooter = "SELECT * FROM footer_info"; // Footer
+
+    db.query(sqlArticles, (err, articles) => {
+        if (err) {
+            console.error('Error fetching articles:', err);
+            return res.status(500).send('Error fetching articles.');
+        }
+
+        db.query(sqlLatest, (err2, latestArticles) => {
+            if (err2) {
+                console.error('Error fetching latest articles:', err2);
+                return res.status(500).send('Error fetching latest articles.');
+            }
+
+            db.query(sqlMostViewed, (err3, mostViewedArticles) => {
+                if (err3) {
+                    console.error('Error fetching most viewed articles:', err3);
+                    return res.status(500).send('Error fetching most viewed articles.');
+                }
+
+                db.query(sqlCategories, (err4, categories) => {
+                    if (err4) {
+                        console.error('Error fetching categories:', err4);
+                        return res.status(500).send('Error fetching categories.');
+                    }
+
+                    db.query(sqlFooter, (err5, footerData) => {
+                        if (err5) {
+                            console.error('Error fetching footer data:', err5);
+                            return res.status(500).send('Error fetching footer data.');
+                        }
+
+                        if (!footerData || footerData.length === 0) {
+                            console.warn('Footer data is missing in the database.');
+                            return res.status(500).send('Footer data is missing in the database.');
+                        }
+
+                        // Render trang index.ejs với tất cả dữ liệu
+                        res.render('index', {
+                            data: {
+                                lst: articles, // Tất cả bài viết
+                                latest: latestArticles, // Bài viết mới nhất
+                                mostViewed: mostViewedArticles, // Bài viết xem nhiều nhất
+                                lsttitle: categories // Danh mục
+                            },
+                            footerData: footerData[0],
+                            session: req.session || {}, // Đảm bảo session luôn tồn tại
+                            allowedUsers: allowedUsers || [] // Đảm bảo allowedUsers luôn tồn tại
+                        });
+                    });
+                });
             });
         });
     });
 });
 
-// Route chi tiết bài viết
-app.get('/detail/:id', (req, res) => {
-    const baivietId = parseInt(req.params.id, 10);
-    if (isNaN(baivietId)) {
-        return res.render('404', { session: req.session });
-    }
+// Route hiển thị bài viết theo danh mục
+app.get('/category/:title', (req, res) => {
+    const categoryTitle = decodeURIComponent(req.params.title); // Giải mã URL
 
-    const sqlBaiViet = 'SELECT baiviet.*, danhmuc.Title AS category_name FROM baiviet JOIN danhmuc ON baiviet.DanhMucID = danhmuc.id WHERE baiviet.id = ?';
-    db.query(sqlBaiViet, [baivietId], (err, baiviet) => {
-        if (err || !baiviet[0]) {
-            return res.render('404', { session: req.session });
+    const sqlCategoryPosts = `
+        SELECT baiviet.* 
+        FROM baiviet 
+        JOIN danhmuc ON baiviet.DanhMucID = danhmuc.id 
+        WHERE danhmuc.Title = ?`;
+
+    const sqlDanhMuc = "SELECT Title FROM danhmuc";
+    const sqlFooter = "SELECT * FROM footer_info LIMIT 1";
+
+    db.query(sqlCategoryPosts, [categoryTitle], (err, posts) => {
+        if (err) {
+            console.error('Error fetching posts for category:', err);
+            return res.status(500).send('Error fetching posts for category.');
         }
 
-        const sqlDanhMuc = 'SELECT Title FROM danhmuc';
         db.query(sqlDanhMuc, (err2, lsttitle) => {
-            if (err2) throw err2;
+            if (err2) {
+                console.error('Error fetching categories:', err2);
+                return res.status(500).send('Error fetching categories.');
+            }
 
-            res.render('single_page', {
-                baiviet: baiviet[0],
-                data: { lsttitle },
-                session: req.session ,
-                allowedUsers
+            db.query(sqlFooter, (err3, footerData) => {
+                if (err3) {
+                    console.error('Error fetching footer data:', err3);
+                    return res.status(500).send('Error fetching footer data.');
+                }
+
+                res.render('category_posts', {
+                    posts,
+                    categoryTitle,
+                    data: { lsttitle },
+                    footerData: footerData.length > 0 ? footerData[0] : {},
+                    session: req.session
+                });
             });
         });
+    });
+}); 
+
+// Route hiển thị chi tiết bài viết và tăng lượt xem
+app.get('/detail/:id', (req, res) => {
+    const postId = parseInt(req.params.id, 10);
+    if (isNaN(postId)) return res.status(400).send('ID không hợp lệ.');
+
+    // Tăng số lượt xem
+    const sqlIncreaseViews = "UPDATE baiviet SET views = views + 1 WHERE id = ?";
+    db.query(sqlIncreaseViews, [postId], (err) => {
+        if (err) {
+            console.error('Error updating views:', err);
+            return res.status(500).send('Error updating views.');
+        }
+
+        // Lấy thông tin bài viết
+        const sqlPost = `
+            SELECT baiviet.*, danhmuc.Title AS categoryName 
+            FROM baiviet 
+            JOIN danhmuc ON baiviet.DanhMucID = danhmuc.id 
+            WHERE baiviet.id = ?`;
+        const sqlRelated = `
+            SELECT id, Title, imagePath 
+            FROM baiviet 
+            WHERE DanhMucID = (SELECT DanhMucID FROM baiviet WHERE id = ?) AND id != ? 
+            LIMIT 5`;
+        const sqlComments = `
+            SELECT email, content 
+            FROM comments 
+            WHERE postId = ?`;
+        const sqlFooter = "SELECT * FROM footer_info LIMIT 1"; // Truy vấn dữ liệu footer
+
+        db.query(sqlPost, [postId], (err, postResult) => {
+            if (err) throw err;
+            if (postResult.length === 0) return res.status(404).send('Bài viết không tồn tại.');
+
+            db.query(sqlRelated, [postId, postId], (err2, relatedPosts) => {
+                if (err2) throw err2;
+
+                db.query(sqlComments, [postId], (err3, comments) => {
+                    if (err3) throw err3;
+
+                    db.query("SELECT * FROM danhmuc", (err4, categories) => {
+                        if (err4) throw err4;
+
+                        db.query(sqlFooter, (err5, footerData) => {
+                            if (err5) {
+                                console.error('Error fetching footer data:', err5);
+                                return res.status(500).send('Error fetching footer data.');
+                            }
+
+                            res.render('single_page', {
+                                baiviet: postResult[0],
+                                relatedPosts,
+                                comments,
+                                categories,
+                                footerData: footerData.length > 0 ? footerData[0] : {}, // Truyền footerData vào EJS
+                                session: req.session
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
+});
+
+// Route thêm bình luận
+app.post('/detail/:id/comment', (req, res) => {
+    const postId = parseInt(req.params.id, 10);
+    const { email, comment } = req.body;
+
+    if (isNaN(postId)) return res.status(400).send('ID không hợp lệ.');
+
+    const sql = "INSERT INTO comments (postId, email, content) VALUES (?, ?, ?)";
+    db.query(sql, [postId, email, comment], (err, result) => {
+        if (err) throw err;
+        res.redirect(`/detail/${postId}`);
     });
 });
 
 // Route hiển thị trang liên hệ
 app.get('/contact', (req, res) => {
     const sqlDanhMuc = "SELECT Title FROM danhmuc";
+    const sqlFooter = "SELECT * FROM footer_info LIMIT 1"; // Truy vấn dữ liệu footer
+
     db.query(sqlDanhMuc, (err, lsttitle) => {
         if (err) throw err;
 
-        res.render('contact', {
-            data: { lsttitle }, // Truyền danh mục vào EJS
-            session: req.session,
-            allowedUsers
+        db.query(sqlFooter, (err2, footerData) => {
+            if (err2) {
+                console.error('Error fetching footer data:', err2);
+                return res.status(500).send('Error fetching footer data.');
+            }
+
+            res.render('contact', {
+                data: { lsttitle }, // Truyền danh mục vào EJS
+                footerData: footerData.length > 0 ? footerData[0] : {}, // Truyền footerData vào EJS
+                session: req.session,
+                allowedUsers
+            });
         });
     });
 });
@@ -337,11 +498,24 @@ app.get('/admin/posts', isAuthenticated, isAuthorized, (req, res) => {
     });
 });
 
+// Cấu hình multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'public/images'); // Thư mục lưu hình ảnh
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + path.extname(file.originalname)); // Đặt tên tệp duy nhất
+    }
+});
+const upload = multer({ storage });
+
 // Route thêm bài viết
-app.post('/admin/posts/add', isAuthenticated, isAuthorized, (req, res) => {
+app.post('/admin/posts/add', upload.single('image'), isAuthenticated, isAuthorized, (req, res) => {
     const { title, content, categoryId } = req.body;
-    const sql = "INSERT INTO baiviet (Title, Content, DanhMucID) VALUES (?, ?, ?)";
-    db.query(sql, [title, content, categoryId], (err, result) => {
+    const imagePath = req.file ? `images/${req.file.filename}` : null; // Đường dẫn hình ảnh
+
+    const sql = "INSERT INTO baiviet (Title, Content, DanhMucID, imagePath) VALUES (?, ?, ?, ?)";
+    db.query(sql, [title, content, categoryId, imagePath], (err, result) => {
         if (err) throw err;
         req.session.message = { type: 'success', content: 'Bài viết mới đã được thêm!' };
         res.redirect('/admin/posts');
@@ -365,22 +539,56 @@ app.post('/admin/posts/delete/:id', isAuthenticated, isAuthorized, (req, res) =>
 });
 
 // Route sửa bài viết
-app.post('/admin/posts/edit/:id', isAuthenticated, isAuthorized, (req, res) => {
+app.post('/admin/posts/edit/:id', upload.single('image'), isAuthenticated, isAuthorized, (req, res) => {
     const postId = parseInt(req.params.id, 10);
     const { title, content, categoryId } = req.body;
+    const imagePath = req.file ? `images/${req.file.filename}` : null; // Đường dẫn hình ảnh mới
+
     if (isNaN(postId)) {
         req.session.message = { type: 'danger', content: 'ID không hợp lệ!' };
         return res.redirect('/admin/posts');
     }
 
-    const sql = "UPDATE baiviet SET Title = ?, Content = ?, DanhMucID = ? WHERE id = ?";
-    db.query(sql, [title, content, categoryId, postId], (err, result) => {
+    // Nếu có hình ảnh mới, cập nhật cả hình ảnh
+    let sql, params;
+    if (imagePath) {
+        sql = "UPDATE baiviet SET Title = ?, Content = ?, DanhMucID = ?, imagePath = ? WHERE id = ?";
+        params = [title, content, categoryId, imagePath, postId];
+    } else {
+        // Nếu không có hình ảnh mới, chỉ cập nhật các trường khác
+        sql = "UPDATE baiviet SET Title = ?, Content = ?, DanhMucID = ? WHERE id = ?";
+        params = [title, content, categoryId, postId];
+    }
+
+    db.query(sql, params, (err, result) => {
         if (err) throw err;
         req.session.message = { type: 'success', content: `Bài viết với ID ${postId} đã được cập nhật!` };
         res.redirect('/admin/posts');
     });
 });
+// Route hiển thị danh sách Subscribe
+app.get('/admin/subscribers', (req, res) => {
+    const sql = "SELECT * FROM subscribers ORDER BY id DESC";
+    db.query(sql, (err, subscribers) => {
+        if (err) {
+            console.error('Error fetching subscribers:', err);
+            return res.status(500).send('Error fetching subscribers.');
+        }
+        res.render('subscribers_list', { subscribers });
+    });
+});
 
+// Route hiển thị danh sách Liên hệ
+app.get('/admin/contacts', (req, res) => {
+    const sql = "SELECT * FROM contacts ORDER BY id DESC";
+    db.query(sql, (err, contacts) => {
+        if (err) {
+            console.error('Error fetching contacts:', err);
+            return res.status(500).send('Error fetching contacts.');
+        }
+        res.render('contacts_list', { contacts });
+    });
+});
 // Khởi động server
 app.listen(port, () => {
     console.log(`Bắt đầu chạy app tại http://localhost:${port}`);
